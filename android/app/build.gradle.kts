@@ -6,6 +6,8 @@ plugins {
 }
 
 android {
+    // 添加或修改ndkVersion配置
+    ndkVersion = "27.0.12077973"
     namespace = "com.example.flutter_demo"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
