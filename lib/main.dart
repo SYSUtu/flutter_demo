@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_demo/MyTabbedPage.dart';
+import 'package:flutter_demo/tab_page.dart';
 
 void main() {
   runApp(const MyApp());

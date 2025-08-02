@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_demo/task_page.dart';
+import 'package:flutter_demo/gift_page.dart';
 
 class MyTabbedPage extends StatefulWidget {
   const MyTabbedPage({super.key});
@@ -10,14 +12,14 @@ class MyTabbedPage extends StatefulWidget {
 class _MyTabbedPageState extends State<MyTabbedPage> {
   // 定义两个Tab的内容
   final List<Widget> _tabs = const [
-    Tab(text: '任务页'),
-    Tab(text: '奖励页'),
+    Tab(text: '每日任务'),
+    Tab(text: '欢乐抽奖'),
   ];
 
   // 定义两个Tab对应的页面内容
   final List<Widget> _tabViews = const [
-    Center(child: Text('这是第一个Tab的内容')),
-    Center(child: Text('这是第二个Tab的内容')),
+    Center(child: TaskPage()),
+    Center(child: GiftPage()),
   ];
 
   @override
