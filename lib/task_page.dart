@@ -10,6 +10,20 @@ class TaskPage extends StatefulWidget{
 
 class _MyTaskPageState extends State<TaskPage> {
   int _counter = 0;
+  int _flag = 1;
+
+  void updateCounter(int value) {
+    setState(() {
+      _counter = value;
+    });
+  }
+
+  void updateFlag(int value) {
+    setState(() {
+      _flag = value;
+      print(_flag);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,14 +31,26 @@ class _MyTaskPageState extends State<TaskPage> {
       appBar: AppBar(
         title: Text('自律分：$_counter'),
       ),
-      body: ScrollableListWithDialog(),
+      body: ScrollableListWithDialog(currentCounter: _counter,
+        onCounterUpdated: updateCounter,
+        currentFlag: _flag,
+        flagUpdated: updateFlag,),
     );
   }
 }
 
 class ScrollableListWithDialog extends StatelessWidget {
-  const ScrollableListWithDialog({super.key});
-
+  final int currentCounter;
+  final Function(int) onCounterUpdated;
+  final int currentFlag;
+  final Function(int) flagUpdated;
+  const ScrollableListWithDialog({
+    super.key,
+    required this.currentCounter,
+    required this.onCounterUpdated,
+    required this.currentFlag,
+    required this.flagUpdated,
+  });
   // 模拟列表数据
   static const List<String> items = [
     "工作日睡眠时间超过7h",
@@ -51,7 +77,14 @@ class ScrollableListWithDialog extends StatelessWidget {
           textAlign: TextAlign.center, ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context), // 关闭弹窗
+            onPressed: () {
+              if (currentFlag == 1){
+                onCounterUpdated(currentCounter + 1);
+                flagUpdated(currentFlag - 1);
+              }
+
+              Navigator.pop(context);
+            },
             child: const Text('完成了'),
           ),
         ],
@@ -63,7 +96,7 @@ class ScrollableListWithDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: MidnightCountdownWidget(),
+        title: MidnightCountdownWidget(flag:currentFlag),
       ),
       // 可滑动列表
       body: ListView.builder(
@@ -101,7 +134,8 @@ class ScrollableListWithDialog extends StatelessWidget {
 
 
 class MidnightCountdownWidget extends StatefulWidget {
-  const MidnightCountdownWidget({super.key});
+  final int flag;
+  const MidnightCountdownWidget({super.key,required this.flag});
 
   @override
   State<MidnightCountdownWidget> createState() => _MidnightCountdownWidgetState();
@@ -148,10 +182,11 @@ class _MidnightCountdownWidgetState extends State<MidnightCountdownWidget> {
     final hours = _remainingTime.inHours.toString().padLeft(2, '0');
     final minutes = (_remainingTime.inMinutes % 60).toString().padLeft(2, '0');
     final seconds = (_remainingTime.inSeconds % 60).toString().padLeft(2, '0');
-    int _flag = 1;
+    final currentFlag = widget.flag;
+
 
     return Text(
-      '今日次数：$_flag，距离下一次刷新还有: $hours:$minutes:$seconds',
+      '今日次数：$currentFlag，距离下一次刷新还有: $hours:$minutes:$seconds',
       style: const TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w500,
