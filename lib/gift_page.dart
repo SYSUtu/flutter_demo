@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_demo/lottery_wheel.dart';
 
-class GiftPage extends StatefulWidget{
+// 主页面保持不变
+class GiftPage extends StatefulWidget {
   const GiftPage({super.key});
 
   @override
@@ -8,22 +10,26 @@ class GiftPage extends StatefulWidget{
 }
 
 class _MyGiftPageState extends State<GiftPage> {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        // 子组件列表（可以放多个Widget）
+      appBar: AppBar(title: const Text('自律分')),
+      body: SingleChildScrollView(
+        child: Column(
           children: [
-            RewardLottery(),
-            TaskList()
-    ]
-      )
+            const RewardLottery(),
+            const Divider(height: 20, thickness: 1),
+            const TaskList(),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class TaskList extends StatefulWidget{
+// TaskList和TextWithButtonRow保持不变
+class TaskList extends StatefulWidget {
   const TaskList({super.key});
 
   @override
@@ -33,33 +39,116 @@ class TaskList extends StatefulWidget{
 class _MyTaskListState extends State<TaskList> {
   @override
   Widget build(BuildContext context) {
-    // 只返回具体内容，不包含Scaffold
     return Column(
       children: [
-        Align(
-          alignment: Alignment.centerLeft, // 左对齐
-          child: const Text(
-            '大奖兑换',
-            style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: const Text(
+              '大奖兑换',
+              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
-        const SizedBox(height: 10), // 间距
-        TextWithButtonRow(taskConent:'1. 30分钟马杀鸡',point:10),
-        TextWithButtonRow(taskConent:'2. 老公给做一顿大餐',point:30),
-        TextWithButtonRow(taskConent:'3. 一起去电影院看电影',point:45),
-        TextWithButtonRow(taskConent:'4. 奖励一个大大的榴莲',point:60),
-        TextWithButtonRow(taskConent:'5. 200元微信红包',point:100),
-        TextWithButtonRow(taskConent:'6. 出去吃一顿大大大餐',point:188),
-        TextWithButtonRow(taskConent:'7. 说走就走的旅行',point:365),
-        TextWithButtonRow(taskConent:'8. 老公给报销瘦脸针',point:500),
-        TextWithButtonRow(taskConent:'9. 老公给买大黄金',point:666),
-        TextWithButtonRow(taskConent:'10. 实现一个究极大愿望',point:999),
+        const SizedBox(height: 10),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 10,
+          itemBuilder: (context, index) {
+            final List<Map<String, dynamic>> rewards = [
+              {'content': '30分钟马杀鸡', 'points': 10},
+              {'content': '老公给做一顿大餐', 'points': 30},
+              {'content': '一起去电影院看电影', 'points': 45},
+              {'content': '奖励一个大大的榴莲', 'points': 60},
+              {'content': '200元微信红包', 'points': 100},
+              {'content': '出去吃一顿大大大餐', 'points': 188},
+              {'content': '说走就走的旅行', 'points': 365},
+              {'content': '老公给报销瘦脸针', 'points': 500},
+              {'content': '老公给买大黄金', 'points': 666},
+              {'content': '实现一个究极大愿望', 'points': 999},
+            ];
+            return TextWithButtonRow(
+              taskConent: '${index + 1}. ${rewards[index]['content']}',
+              point: rewards[index]['points'],
+            );
+          },
+        ),
       ],
     );
   }
 }
 
-class RewardLottery extends StatefulWidget{
+class TextWithButtonRow extends StatelessWidget {
+  final String taskConent;
+  final int point;
+
+  const TextWithButtonRow({
+    super.key,
+    required this.taskConent,
+    required this.point,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey[100]!,
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: Text(
+              taskConent,
+              style: const TextStyle(fontSize: 18, color: Colors.black87),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: ElevatedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('已兑换 ${taskConent.split('.')[1].trim()}，消耗$point分'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                minimumSize: const Size(80, 40),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              child: Text('-$point分'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// RewardLottery保持不变
+class RewardLottery extends StatefulWidget {
   const RewardLottery({super.key});
 
   @override
@@ -69,76 +158,33 @@ class RewardLottery extends StatefulWidget{
 class _MyRewardLotteryState extends State<RewardLottery> {
   @override
   Widget build(BuildContext context) {
-    // 只返回具体内容，不包含Scaffold
+    final screenSize = MediaQuery.of(context).size;
     return Column(
       children: [
-        Align(
-          alignment: Alignment.centerLeft, // 左对齐
-          child: const Text(
-            '欢乐抽奖',
-            style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: const Text(
+              '欢乐抽奖',
+              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: Colors.black),
+            ),
           ),
         ),
-        const SizedBox(height: 10), // 间距
-        const Center(child: Text("各种任务")),
-        // 可以添加更多任务相关的布局...
-      ],
-    );
-  }
-}
-
-class TextWithButtonRow extends StatelessWidget {
-  final String taskConent;
-  final int point;
-  const TextWithButtonRow({super.key,required this.taskConent, required this.point});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-          // 主轴对齐方式：两端对齐（文本靠左，按钮靠右）
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          // 交叉轴对齐方式：垂直居中
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // 文本部分
-            Padding(
-              // 只设置左边距为16像素（可根据需要调整数值）
-              padding: const EdgeInsets.only(left: 16),
-              child: Text(
-                '$taskConent',
-                style: const TextStyle(
-                  fontSize: 20,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-
-            // 按钮部分
-            ElevatedButton(
-              onPressed: () {
-                // 按钮点击逻辑
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('快去找你老公兑现吧！！！')),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                // 背景色（ ElevatedButton 特有，凸起按钮的背景）
-                backgroundColor: Colors.teal, // 正常状态
-                disabledBackgroundColor: Colors.grey[300], // 禁用状态
-
-                // 文本颜色
-                foregroundColor: Colors.white, // 正常状态文字/图标颜色
-                disabledForegroundColor: Colors.grey[600], // 禁用状态文字/图标颜色
-
-                // 内边距（按钮内容与边缘的距离）
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-
-                // 最小尺寸（按钮的最小宽高）
-                minimumSize: Size(80, 40), // 宽100，高40
-              ),
-              child: Text('-$point分'),
-            ),
+        const SizedBox(height: 10),
+        LotteryWheel(
+          maxSize: screenSize.width * 0.9,
+          items: [
+            LotteryItem(name: "+2积分", color: Colors.red, icon: Icons.star, probability: 1),
+            LotteryItem(name: "+1积分", color: Colors.orange, icon: Icons.emoji_events, probability: 2),
+            LotteryItem(name: "三等奖", color: Colors.yellow, icon: Icons.card_giftcard, probability: 3),
+            LotteryItem(name: "谢谢参与", color: Colors.black, icon: Icons.sentiment_neutral, probability: 10),
+            LotteryItem(name: "谢谢参与", color: Colors.pink, icon: Icons.sentiment_neutral, probability: 10),
+            LotteryItem(name: "谢谢参与", color: Colors.pinkAccent, icon: Icons.sentiment_neutral, probability: 10),
+            LotteryItem(name: "谢谢参与", color: Colors.indigo, icon: Icons.sentiment_neutral, probability: 10),
           ],
+        ),
+      ],
     );
   }
 }

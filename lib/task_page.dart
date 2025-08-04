@@ -21,7 +21,6 @@ class _MyTaskPageState extends State<TaskPage> {
   void updateFlag(int value) {
     setState(() {
       _flag = value;
-      print(_flag);
     });
   }
 
