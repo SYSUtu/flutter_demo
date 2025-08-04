@@ -13,7 +13,7 @@ class _MyTabbedPageState extends State<MyTabbedPage> {
   // 定义两个Tab的内容
   final List<Widget> _tabs = const [
     Tab(text: '每日任务'),
-    Tab(text: '欢乐抽奖'),
+    Tab(text: '奖励兑换'),
   ];
 
   // 定义两个Tab对应的页面内容
