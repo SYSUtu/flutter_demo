@@ -177,8 +177,8 @@ class _MyRewardLotteryState extends State<RewardLottery> {
           items: [
             LotteryItem(name: "+2积分", color: Colors.red, icon: Icons.star, probability: 10.5),
             LotteryItem(name: "+1积分", color: Colors.orange, icon: Icons.emoji_events, probability: 25),
-            LotteryItem(name: "+5积分", color: Colors.yellow, icon: Icons.card_giftcard, probability: 7.5),
-            LotteryItem(name: "+10积分", color: Colors.black, icon: Icons.sentiment_neutral, probability: 5.9),
+            LotteryItem(name: "+5积分", color: Colors.cyan, icon: Icons.card_giftcard, probability: 7.5),
+            LotteryItem(name: "+10积分", color: Colors.green, icon: Icons.sentiment_neutral, probability: 5.9),
             LotteryItem(name: "+100积分", color: Colors.pink, icon: Icons.sentiment_neutral, probability: 1),
             LotteryItem(name: "+1000积分", color: Colors.pinkAccent, icon: Icons.sentiment_neutral, probability: 0.1),
             LotteryItem(name: "谢谢参与", color: Colors.indigo, icon: Icons.sentiment_neutral, probability: 50),
