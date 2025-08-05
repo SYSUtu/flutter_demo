@@ -173,7 +173,7 @@ class _MyRewardLotteryState extends State<RewardLottery> {
         ),
         const SizedBox(height: 10),
         LotteryWheel(
-          maxSize: screenSize.width * 0.85,
+          maxSize: MediaQuery.of(context).size.width * 0.85,
           items: [
             LotteryItem(name: "+2积分", color: Colors.red, icon: Icons.star, probability: 10.5),
             LotteryItem(name: "+1积分", color: Colors.orange, icon: Icons.emoji_events, probability: 25),
