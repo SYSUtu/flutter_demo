@@ -220,19 +220,27 @@ class _LotteryWheelState extends State<LotteryWheel> with SingleTickerProviderSt
     return AspectRatio(
       aspectRatio: 1.0,
       child: Transform.rotate(
+        // 转盘整体旋转角度（弧度）
         angle: _currentAngle * pi / 180,
         child: Stack(
           children: [
             ...List.generate(widget.items.length, (index) {
               final startAngleRad = _sectorStartAngles[index] * pi / 180;
               final sweepAngleRad = _sectorAngles[index] * pi / 180;
-
-              // 优化文字和图标尺寸（适配不同转盘大小）
-              final textSize = max(size * 0.04, 12.0); // 最小12号字，避免过小
-              final iconSize = max(size * 0.06, 16.0); // 图标尺寸适配文字
-
-              // 计算扇区中心角度（用于文字定位和旋转）
+              // 扇区中心角度（弧度）
               final centerAngleRad = startAngleRad + sweepAngleRad / 2;
+              // 转盘当前旋转角度（弧度）
+              final currentAngleRad = _currentAngle * pi / 180;
+
+              // 文字和图标尺寸（根据转盘大小动态调整）
+              final textSize = max(size * 0.045, 14.0);
+              final iconSize = max(size * 0.07, 18.0);
+
+              // 计算文字旋转角度：
+              // 1. 抵消转盘整体旋转（-currentAngleRad）
+              // 2. 抵消扇区自身角度（-centerAngleRad）
+              // 3. 最终加pi/2确保文字垂直向上
+              final textRotation = -currentAngleRad - centerAngleRad + pi / 2;
 
               return ClipPath(
                 clipper: _WheelClipper(startAngleRad, sweepAngleRad),
@@ -240,36 +248,40 @@ class _LotteryWheelState extends State<LotteryWheel> with SingleTickerProviderSt
                   color: widget.items[index].color,
                   child: Stack(
                     children: [
-                      // 使用极坐标定位文字，确保在扇区内
+                      // 极坐标定位：精准居中于扇区
                       Positioned(
-                        // 核心优化：通过三角函数计算扇区中心位置
-                        left: size / 2 + (size * 0.4) * cos(centerAngleRad),
-                        top: size / 2 + (size * 0.4) * sin(centerAngleRad),
+                        // 核心公式：计算扇区中心的坐标
+                        left: size / 2 + (size * 0.35) * cos(centerAngleRad),
+                        top: size / 2 + (size * 0.35) * sin(centerAngleRad),
+                        // 强制文字块居中对齐
                         child: Transform.rotate(
-                          // 文字旋转角度：抵消扇区角度，保持正向显示
-                          angle: -centerAngleRad,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                widget.items[index].icon,
-                                color: Colors.white,
-                                size: iconSize,
-                                shadows: const [Shadow(color: Colors.black54, blurRadius: 2)],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                widget.items[index].name,
-                                style: TextStyle(
-                                  color: Colors.white, // 白色文字适配所有背景色
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: textSize,
-                                  shadows: const [Shadow(color: Colors.black54, blurRadius: 2)],
+                          angle: textRotation,
+                          child: Container(
+                            // 固定文字块宽度，避免换行导致的歪斜
+                            width: textSize * 5, // 根据最长文字调整
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  widget.items[index].icon,
+                                  color: Colors.white,
+                                  size: iconSize,
                                 ),
-                                softWrap: false, // 禁止换行避免文字被截断
-                                overflow: TextOverflow.visible, // 允许超出容器（扇形内安全）
-                              ),
-                            ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  widget.items[index].name,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: textSize,
+                                    height: 1.0, // 消除文字行高导致的偏移
+                                  ),
+                                  softWrap: false,
+                                  overflow: TextOverflow.visible,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -278,7 +290,7 @@ class _LotteryWheelState extends State<LotteryWheel> with SingleTickerProviderSt
                 ),
               );
             }),
-            // 转盘中心装饰
+            // 转盘中心
             Center(
               child: CircleAvatar(
                 radius: size * 0.1,
@@ -291,6 +303,7 @@ class _LotteryWheelState extends State<LotteryWheel> with SingleTickerProviderSt
       ),
     );
   }
+
 }
 
 class LotteryItem {
