@@ -22,8 +22,8 @@ class _LotteryWheelState extends State<LotteryWheel> with SingleTickerProviderSt
   double _currentAngle = 0;
   bool _isSpinning = false;
   int? _currentWinningIndex;
-  List<double> _sectorAngles = [];
-  List<double> _sectorStartAngles = [];
+  final List<double> _sectorAngles = [];
+  final List<double> _sectorStartAngles = [];
 
   @override
   void initState() {
@@ -227,57 +227,58 @@ class _LotteryWheelState extends State<LotteryWheel> with SingleTickerProviderSt
               final startAngleRad = _sectorStartAngles[index] * pi / 180;
               final sweepAngleRad = _sectorAngles[index] * pi / 180;
 
-              // 优化1：根据扇区角度动态调整文字大小（确保可见）
-              final textSize = max(size * 0.05, 14.0); // 最小14号字
-              final iconSize = max(size * 0.08, 20.0); // 最小20号图标
+              // 优化文字和图标尺寸（适配不同转盘大小）
+              final textSize = max(size * 0.04, 12.0); // 最小12号字，避免过小
+              final iconSize = max(size * 0.06, 16.0); // 图标尺寸适配文字
 
-              // 优化2：计算扇区中心角度（用于文字旋转）
+              // 计算扇区中心角度（用于文字定位和旋转）
               final centerAngleRad = startAngleRad + sweepAngleRad / 2;
 
               return ClipPath(
                 clipper: _WheelClipper(startAngleRad, sweepAngleRad),
                 child: Container(
                   color: widget.items[index].color,
-                  child: Align(
-                    // 优化3：使用坐标定位文字，避免旋转导致偏移
-                    alignment: Alignment.center,
-                    child: Transform.rotate(
-                      // 优化4：文字旋转角度 = 扇区中心角度 + 90度（确保正向显示）
-                      angle: centerAngleRad + pi / 2,
-                      child: Padding(
-                        // 优化5：根据扇区位置调整距离中心的距离
-                        padding: EdgeInsets.only(
-                          top: size * 0.35, // 固定距离中心的距离（避免太靠近边缘或中心）
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              widget.items[index].icon,
-                              color: Colors.white,
-                              size: iconSize,
-                              shadows: const [Shadow(color: Colors.black54, blurRadius: 1)],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              widget.items[index].name,
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: textSize,
-                                shadows: const [Shadow(color: Colors.black54, blurRadius: 1)],
+                  child: Stack(
+                    children: [
+                      // 使用极坐标定位文字，确保在扇区内
+                      Positioned(
+                        // 核心优化：通过三角函数计算扇区中心位置
+                        left: size / 2 + (size * 0.4) * cos(centerAngleRad),
+                        top: size / 2 + (size * 0.4) * sin(centerAngleRad),
+                        child: Transform.rotate(
+                          // 文字旋转角度：抵消扇区角度，保持正向显示
+                          angle: -centerAngleRad,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                widget.items[index].icon,
+                                color: Colors.white,
+                                size: iconSize,
+                                shadows: const [Shadow(color: Colors.black54, blurRadius: 2)],
                               ),
-                              // 优化6：强制不换行，避免文字被截断
-                              softWrap: false,
-                            ),
-                          ],
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.items[index].name,
+                                style: TextStyle(
+                                  color: Colors.white, // 白色文字适配所有背景色
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: textSize,
+                                  shadows: const [Shadow(color: Colors.black54, blurRadius: 2)],
+                                ),
+                                softWrap: false, // 禁止换行避免文字被截断
+                                overflow: TextOverflow.visible, // 允许超出容器（扇形内安全）
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               );
             }),
+            // 转盘中心装饰
             Center(
               child: CircleAvatar(
                 radius: size * 0.1,
@@ -335,6 +336,7 @@ class _WheelClipper extends CustomClipper<Path> {
   }
 }
 
+// 辅助方法：比较两个列表是否相等
 bool listEquals<T>(List<T>? a, List<T>? b) {
   if (a == null && b == null) return true;
   if (a == null || b == null) return false;

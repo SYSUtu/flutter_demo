@@ -68,7 +68,7 @@ class ScrollableListWithDialog extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('今天完成了这个目标吗？'),
         content: Text(
-          '$itemText',
+          itemText,
           style: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w500,
