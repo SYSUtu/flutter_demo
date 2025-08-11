@@ -74,12 +74,12 @@ class _LotteryWheelState extends State<LotteryWheel>
     if (_isSpinning) return;
     _isSpinning = true;
 
-    // 1. 验证概率总和
+    // 1. 验证概率总和（不变）
     final totalProbability = widget.items.fold(0.0, (sum, item) => sum + item.probability);
     assert((totalProbability - 100.0).abs() < 0.001,
     '概率总和必须为100%，当前: $totalProbability%');
 
-    // 2. 随机确定中奖奖项
+    // 2. 随机确定中奖奖项（不变）
     final random = Random();
     final double randomValue = random.nextDouble() * totalProbability;
 
@@ -92,28 +92,26 @@ class _LotteryWheelState extends State<LotteryWheel>
       }
     }
 
-    // 3. 计算角度参数
+    // 3. 计算角度参数（不变）
     final int itemCount = widget.items.length;
     final double anglePerItem = 2 * pi / itemCount;
 
-    // 4. 计算中奖区域中心角度（关键修正）
-    // 起始角度：顶部（-π/2） + 当前索引 * 每项角度
+    // 4. 计算中奖区域中心角度（不变）
     final double sectorCenterAngle = -pi/2 + (_selectedIndex * anglePerItem) + (anglePerItem / 2);
 
-    // 5. 在中心区域±30%范围内随机停留（避免边界）
+    // 5. 随机停留偏移（不变）
     final double offsetRange = 0.3;
     final double randomOffset = (random.nextDouble() * 2 * offsetRange) - offsetRange;
     final double finalStopAngle = sectorCenterAngle + (randomOffset * anglePerItem);
 
-    // 6. 计算目标旋转角度（优化补偿算法）
-    // 当前角度 + 10圈 - 最终停止角度 + 指针补偿
+    // 6. 计算目标旋转角度（修正符号）
     final double pointerOffset = pi/2; // 90度指针补偿
     final double targetAngle = _currentAngle +
         10 * 2 * pi -
-        finalStopAngle +
+        finalStopAngle -  // 关键修正：将+改为-
         pointerOffset;
 
-    // 7. 执行动画（使用更平滑的曲线）
+    // 7. 执行动画（不变）
     _rotationAnimation = TweenSequence([
       TweenSequenceItem(
         tween: Tween<double>(begin: _currentAngle, end: _currentAngle + 5 * 2 * pi)
