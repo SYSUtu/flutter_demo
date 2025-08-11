@@ -158,7 +158,6 @@ class RewardLottery extends StatefulWidget {
 class _MyRewardLotteryState extends State<RewardLottery> {
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
     return Column(
       children: [
         Padding(

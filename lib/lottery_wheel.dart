@@ -20,10 +20,10 @@ class LotteryWheel extends StatefulWidget {
   final List<LotteryItem> items;
 
   const LotteryWheel({
-    Key? key,
+    super.key,
     required this.maxSize,
     required this.items,
-  }) : super(key: key);
+  });
 
   @override
   _LotteryWheelState createState() => _LotteryWheelState();
@@ -53,7 +53,8 @@ class _LotteryWheelState extends State<LotteryWheel>
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         setState(() => _isSpinning = false);
-        _showResultDialog();
+        // 添加延迟确保动画完全结束
+        Future.delayed(const Duration(milliseconds: 200), _showResultDialog);
       }
     });
 
@@ -73,9 +74,13 @@ class _LotteryWheelState extends State<LotteryWheel>
     if (_isSpinning) return;
     _isSpinning = true;
 
-    // 1. 随机确定中奖奖项
-    final random = Random();
+    // 1. 验证概率总和
     final totalProbability = widget.items.fold(0.0, (sum, item) => sum + item.probability);
+    assert((totalProbability - 100.0).abs() < 0.001,
+    '概率总和必须为100%，当前: $totalProbability%');
+
+    // 2. 随机确定中奖奖项
+    final random = Random();
     final double randomValue = random.nextDouble() * totalProbability;
 
     double cumulative = 0;
@@ -87,37 +92,37 @@ class _LotteryWheelState extends State<LotteryWheel>
       }
     }
 
-    // 2. 核心修复：调整角度补偿，解决左侧偏移
+    // 3. 计算角度参数
     final int itemCount = widget.items.length;
-    final double anglePerItem = 2 * pi / itemCount; // 每个格子的弧度
+    final double anglePerItem = 2 * pi / itemCount;
 
-    // 中奖格子的起始角度（与绘制逻辑严格对应）
-    // 修复点1：明确绘制起始角度为 -pi/2（顶部）
-    final double sectorStartAngle = -pi/2 + (_selectedIndex * anglePerItem);
-    // 中奖格子的结束角度
-    final double sectorEndAngle = sectorStartAngle + anglePerItem;
+    // 4. 计算中奖区域中心角度（关键修正）
+    // 起始角度：顶部（-π/2） + 当前索引 * 每项角度
+    final double sectorCenterAngle = -pi/2 + (_selectedIndex * anglePerItem) + (anglePerItem / 2);
 
-    // 3. 在中奖格子范围内随机生成停留角度
-    // 修复点2：调整随机范围，避免过度偏向左侧（增加0.1偏移，确保远离左边界）
-    final double randomOffset = 0.1 + (random.nextDouble() * 0.8); // 0.1-0.9之间
-    final double randomStopAngle = sectorStartAngle + (randomOffset * anglePerItem);
+    // 5. 在中心区域±30%范围内随机停留（避免边界）
+    final double offsetRange = 0.3;
+    final double randomOffset = (random.nextDouble() * 2 * offsetRange) - offsetRange;
+    final double finalStopAngle = sectorCenterAngle + (randomOffset * anglePerItem);
 
-    // 4. 计算目标旋转角度（关键补偿公式）
-    // 修复点3：调整补偿方向，确保指针落在格子中央偏右位置
-    final double targetAngle = _currentAngle
-        + 10 * 2 * pi  // 固定转动10圈
-        - randomStopAngle;  // 修正补偿符号，解决左侧偏移
+    // 6. 计算目标旋转角度（优化补偿算法）
+    // 当前角度 + 10圈 - 最终停止角度 + 指针补偿
+    final double pointerOffset = pi/2; // 90度指针补偿
+    final double targetAngle = _currentAngle +
+        10 * 2 * pi -
+        finalStopAngle +
+        pointerOffset;
 
-    // 5. 执行转动动画
+    // 7. 执行动画（使用更平滑的曲线）
     _rotationAnimation = TweenSequence([
       TweenSequenceItem(
-        tween: Tween<double>(begin: _currentAngle, end: _currentAngle + 4 * 2 * pi)
-            .chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween<double>(begin: _currentAngle, end: _currentAngle + 5 * 2 * pi)
+            .chain(CurveTween(curve: Curves.easeInOutQuad)),
         weight: 40,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: _currentAngle + 4 * 2 * pi, end: targetAngle)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween<double>(begin: _currentAngle + 5 * 2 * pi, end: targetAngle)
+            .chain(CurveTween(curve: Curves.easeOutCubic)),
         weight: 60,
       ),
     ]).animate(_controller);
@@ -127,10 +132,26 @@ class _LotteryWheelState extends State<LotteryWheel>
 
   void _resetWheel() {
     if (_resetController.isAnimating) _resetController.stop();
+
+    // 角度归一化到 [0, 2π)
     final double normalizedAngle = _currentAngle % (2 * pi);
-    final double resetAngle = normalizedAngle > pi ? normalizedAngle - 2 * pi : normalizedAngle;
-    _resetAnimation = Tween<double>(begin: _currentAngle, end: _currentAngle - resetAngle)
-        .animate(CurvedAnimation(parent: _resetController, curve: Curves.easeOut));
+
+    // 计算最短路径回归初始位置
+    double resetAngle;
+    if (normalizedAngle > pi) {
+      resetAngle = normalizedAngle - 2 * pi;
+    } else {
+      resetAngle = normalizedAngle;
+    }
+
+    _resetAnimation = Tween<double>(
+        begin: _currentAngle,
+        end: _currentAngle - resetAngle
+    ).animate(CurvedAnimation(
+        parent: _resetController,
+        curve: Curves.easeInOut
+    ));
+
     _resetController.forward(from: 0);
   }
 
@@ -138,31 +159,47 @@ class _LotteryWheelState extends State<LotteryWheel>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text("抽奖结果"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              widget.items[_selectedIndex].icon,
-              color: widget.items[_selectedIndex].color,
-              size: 50,
-            ),
-            const SizedBox(height: 16),
-            Text("您抽中了：${widget.items[_selectedIndex].name}",
-              style: const TextStyle(fontSize: 18),
-            ),
-          ],
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _resetWheel();
-            },
-            child: const Text("确定"),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "抽奖结果",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              Icon(
+                widget.items[_selectedIndex].icon,
+                color: widget.items[_selectedIndex].color,
+                size: 60,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "您抽中了：${widget.items[_selectedIndex].name}",
+                style: const TextStyle(fontSize: 18),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _resetWheel();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                ),
+                child: const Text("确定", style: TextStyle(fontSize: 18)),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -182,9 +219,9 @@ class _LotteryWheelState extends State<LotteryWheel>
                 painter: _WheelPainter(items: widget.items),
               ),
             ),
-            // 指针位置微调，确保尖端对准格子中心
+            // 精确指针定位
             const Positioned(
-              top: -2,
+              top: -4, // 微调指针位置
               child: _WheelPointer(),
             ),
           ],
@@ -193,15 +230,22 @@ class _LotteryWheelState extends State<LotteryWheel>
         ElevatedButton(
           onPressed: _isSpinning ? null : _spinWheel,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _isSpinning ? Colors.grey : Colors.teal,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            backgroundColor: _isSpinning ? Colors.grey[400] : Colors.teal,
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
             textStyle: const TextStyle(
-                fontSize: 18,
-                color: Colors.black,
+                fontSize: 20,
                 fontWeight: FontWeight.bold
             ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          child: Text(_isSpinning ? '转动中...' : '开始抽奖'),
+          child: Text(
+            _isSpinning ? '转动中...' : '开始抽奖',
+            style: TextStyle(
+              color: _isSpinning ? Colors.grey[700] : Colors.white,
+            ),
+          ),
         ),
       ],
     );
@@ -220,41 +264,62 @@ class _WheelPainter extends CustomPainter {
     final itemCount = items.length;
     final double anglePerItem = 2 * pi / itemCount;
 
-    // 从顶部开始绘制（-pi/2 对应正上方，与指针位置对齐）
+    // 从顶部开始绘制（-pi/2）
     double startAngle = -pi / 2;
     final textStyle = TextStyle(
       color: Colors.white,
-      fontSize: radius * 0.08,
+      fontSize: max(14, radius * 0.09), // 动态字体大小
       fontWeight: FontWeight.bold,
+      shadows: const [
+        Shadow(
+          blurRadius: 2.0,
+          color: Colors.black54,
+          offset: Offset(1, 1),
+        ),
+      ],
     );
 
-    for (final item in items) {
-      // 绘制扇形格子
+    // 绘制扇形和文字
+    for (int i = 0; i < itemCount; i++) {
+      final item = items[i];
+
+      // 绘制扇形
+      final paint = Paint()
+        ..color = item.color
+        ..style = PaintingStyle.fill;
+
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
         startAngle,
         anglePerItem,
         true,
-        Paint()..color = item.color,
+        paint,
       );
 
-      // 绘制分割线（增强格子边界可见性）
+      // 绘制分割线
+      final linePaint = Paint()
+        ..color = Colors.white
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke;
+
       canvas.drawLine(
         center,
-        Offset(center.dx + cos(startAngle) * radius, center.dy + sin(startAngle) * radius),
-        Paint()
-          ..color = Colors.white
-          ..strokeWidth = 3.0  // 加粗分割线，便于观察边界
-          ..style = PaintingStyle.stroke,
+        Offset(
+          center.dx + cos(startAngle) * radius,
+          center.dy + sin(startAngle) * radius,
+        ),
+        linePaint,
       );
 
-      // 绘制奖项名称
+      // 计算文字位置（扇形中心）
       final textAngle = startAngle + anglePerItem / 2;
+      final textRadius = radius * 0.65; // 文字离中心距离
       final textOffset = Offset(
-        center.dx + cos(textAngle) * radius * 0.6,
-        center.dy + sin(textAngle) * radius * 0.6,
+        center.dx + cos(textAngle) * textRadius,
+        center.dy + sin(textAngle) * textRadius,
       );
 
+      // 绘制文字
       final textPainter = TextPainter(
         text: TextSpan(text: item.name, style: textStyle),
         textDirection: TextDirection.ltr,
@@ -263,15 +328,25 @@ class _WheelPainter extends CustomPainter {
 
       canvas.save();
       canvas.translate(textOffset.dx, textOffset.dy);
-      canvas.rotate(textAngle + pi / 2);
-      textPainter.paint(canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
+      canvas.rotate(textAngle + pi / 2); // 文字径向排列
+      textPainter.paint(
+        canvas,
+        Offset(-textPainter.width / 2, -textPainter.height / 2),
+      );
       canvas.restore();
 
       startAngle += anglePerItem;
     }
 
-    // 中心圆
-    canvas.drawCircle(center, radius * 0.1, Paint()..color = Colors.white);
+    // 中心圆（带阴影）
+    canvas.drawCircle(
+      center,
+      radius * 0.12,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
   }
 
   @override
@@ -279,12 +354,12 @@ class _WheelPainter extends CustomPainter {
 }
 
 class _WheelPointer extends StatelessWidget {
-  const _WheelPointer({Key? key}) : super(key: key);
+  const _WheelPointer();
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      size: const Size(30, 40),
+      size: const Size(36, 48), // 加大指针尺寸
       painter: _PointerPainter(),
     );
   }
@@ -293,16 +368,38 @@ class _WheelPointer extends StatelessWidget {
 class _PointerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // 指针形状优化，尖端更尖锐，定位更精准
     final path = Path()
-      ..moveTo(size.width / 2, 0) // 指针尖端（精准定位点）
-      ..lineTo(size.width * 0.2, size.height)
-      ..lineTo(size.width * 0.8, size.height)
+      ..moveTo(size.width / 2, 0) // 指针尖端
+      ..lineTo(size.width * 0.15, size.height * 0.9) // 左侧点
+      ..lineTo(size.width * 0.85, size.height * 0.9) // 右侧点
       ..close();
 
-    canvas.drawPath(path, Paint()..color = Colors.redAccent);
-    // 尖端红点，清晰标记指向位置
-    canvas.drawCircle(Offset(size.width / 2, 0), 3, Paint()..color = Colors.red);
+    // 填充指针
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.redAccent
+        ..style = PaintingStyle.fill,
+    );
+
+    // 指针边框
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.red[900]!
+        ..strokeWidth = 1.5
+        ..style = PaintingStyle.stroke,
+    );
+
+    // 中心标记点（精确定位）
+    canvas.drawCircle(
+      Offset(size.width / 2, 0),
+      3.5,
+      Paint()
+        ..color = Colors.white
+        ..strokeWidth = 1.5
+        ..style = PaintingStyle.fill,
+    );
   }
 
   @override
