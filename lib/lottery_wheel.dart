@@ -280,7 +280,7 @@ class _LotteryWheelState extends State<LotteryWheel>
             ),
           ),
           child: Text(
-            _isSpinning ? '转动中...' : '开始抽奖',
+            _isSpinning ? '转动中...' : '开始抽奖(-1分)',
             style: TextStyle(
               color: _isSpinning ? Colors.grey[700] : Colors.white,
             ),
