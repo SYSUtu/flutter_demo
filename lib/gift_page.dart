@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_demo/lottery_wheel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // 主页面保持不变
 class GiftPage extends StatefulWidget {
@@ -10,10 +11,27 @@ class GiftPage extends StatefulWidget {
 }
 
 class _MyGiftPageState extends State<GiftPage> {
+  int _counter = 0;
+  late SharedPreferences _prefs;
+
+  @override
+  void initState() {
+    super.initState();
+    _initPrefs(); // 初始化本地存储并检查跨天
+  }
+
+  Future<void> _initPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+    // 读取存储的状态
+    setState(() {
+      _counter = _prefs.getInt('counter') ?? 0;
+    });
+
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('自律分')),
+      appBar: AppBar(title:  Text('自律分：$_counter')),
       body: SingleChildScrollView(
         child: Column(
           children: [
