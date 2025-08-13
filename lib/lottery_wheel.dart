@@ -18,11 +18,15 @@ class LotteryItem {
 class LotteryWheel extends StatefulWidget {
   final double maxSize;
   final List<LotteryItem> items;
+  final int currentCounter;
+  final Function(int) onCounterUpdated;
 
   const LotteryWheel({
     super.key,
     required this.maxSize,
     required this.items,
+    required this.currentCounter,
+    required this.onCounterUpdated
   });
 
   @override
@@ -154,6 +158,19 @@ class _LotteryWheelState extends State<LotteryWheel>
   }
 
   void _showResultDialog() {
+    // 从抽中奖项的名称中提取分数值
+    int scoreToAdd = 0;
+    final prizeName = widget.items[_selectedIndex].name;
+
+    // 处理加分的情况（如 "+2积分"、"+10积分"）
+    if (prizeName.startsWith('+')) {
+      // 提取数字部分
+      final scoreStr = prizeName.replaceAll(RegExp(r'[^\d]'), '');
+      if (scoreStr.isNotEmpty) {
+        scoreToAdd = int.parse(scoreStr);
+      }
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -182,10 +199,27 @@ class _LotteryWheelState extends State<LotteryWheel>
                 style: const TextStyle(fontSize: 18),
                 textAlign: TextAlign.center,
               ),
+              // 显示加分信息（如果中奖）
+              if (scoreToAdd > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    "已为您增加 $scoreToAdd 积分",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
+                  // 更新计数器：当前分数 + 抽中分数
+                  if (scoreToAdd > 0) {
+                    widget.onCounterUpdated(widget.currentCounter + scoreToAdd);
+                  }
                   _resetWheel();
                 },
                 style: ElevatedButton.styleFrom(
@@ -201,6 +235,7 @@ class _LotteryWheelState extends State<LotteryWheel>
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -226,7 +261,13 @@ class _LotteryWheelState extends State<LotteryWheel>
         ),
         const SizedBox(height: 30),
         ElevatedButton(
-          onPressed: _isSpinning ? null : _spinWheel,
+          onPressed: (){
+            if (!_isSpinning) {
+              // 如果正在旋转，回调为 null（按钮禁用）
+              widget.onCounterUpdated(widget.currentCounter-1);
+              _spinWheel();
+            }
+          },
           style: ElevatedButton.styleFrom(
             backgroundColor: _isSpinning ? Colors.grey[400] : Colors.teal,
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),

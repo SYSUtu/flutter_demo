@@ -20,6 +20,18 @@ class _MyGiftPageState extends State<GiftPage> {
     _initPrefs(); // 初始化本地存储并检查跨天
   }
 
+  Future<void> _saveCounter(int value) async {
+    await _prefs.setInt('counter', value);
+  }
+
+  // 更新计数器
+  void updateCounter(int value) {
+    setState(() {
+      _counter = value;
+    });
+    _saveCounter(value);
+  }
+
   Future<void> _initPrefs() async {
     _prefs = await SharedPreferences.getInstance();
     // 读取存储的状态
@@ -35,9 +47,11 @@ class _MyGiftPageState extends State<GiftPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const RewardLottery(),
+            RewardLottery(currentCounter: _counter,
+                onCounterUpdated: updateCounter),
             const Divider(height: 20, thickness: 1),
-            const TaskList(),
+            TaskList(currentCounter: _counter,
+                onCounterUpdated: updateCounter),
             const SizedBox(height: 20),
           ],
         ),
@@ -48,7 +62,10 @@ class _MyGiftPageState extends State<GiftPage> {
 
 // TaskList和TextWithButtonRow保持不变
 class TaskList extends StatefulWidget {
-  const TaskList({super.key});
+  final int currentCounter;
+  final Function(int) onCounterUpdated;
+  const TaskList({super.key,required this.currentCounter,
+    required this.onCounterUpdated,});
 
   @override
   State<TaskList> createState() => _MyTaskListState();
@@ -90,6 +107,8 @@ class _MyTaskListState extends State<TaskList> {
             return TextWithButtonRow(
               taskConent: '${index + 1}. ${rewards[index]['content']}',
               point: rewards[index]['points'],
+              currentCounter: widget.currentCounter,
+              onCounterUpdated: widget.onCounterUpdated,
             );
           },
         ),
@@ -101,11 +120,14 @@ class _MyTaskListState extends State<TaskList> {
 class TextWithButtonRow extends StatelessWidget {
   final String taskConent;
   final int point;
+  final int currentCounter;
+  final Function(int) onCounterUpdated;
 
   const TextWithButtonRow({
     super.key,
     required this.taskConent,
-    required this.point,
+    required this.point,required this.currentCounter,
+  required this.onCounterUpdated,
   });
 
   @override
@@ -140,6 +162,7 @@ class TextWithButtonRow extends StatelessWidget {
             padding: const EdgeInsets.only(right: 16),
             child: ElevatedButton(
               onPressed: () {
+                onCounterUpdated(currentCounter-point);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('已兑换 ${taskConent.split('.')[1].trim()}，消耗$point分'),
@@ -167,7 +190,11 @@ class TextWithButtonRow extends StatelessWidget {
 
 // RewardLottery保持不变
 class RewardLottery extends StatefulWidget {
-  const RewardLottery({super.key});
+  final int currentCounter;
+  final Function(int) onCounterUpdated;
+  const RewardLottery({super.key,
+    required this.currentCounter,
+    required this.onCounterUpdated,});
 
   @override
   State<RewardLottery> createState() => _MyRewardLotteryState();
@@ -200,6 +227,8 @@ class _MyRewardLotteryState extends State<RewardLottery> {
             LotteryItem(name: "+1000积分", color: Colors.pinkAccent, icon: Icons.add_card, probability: 0.01),
             LotteryItem(name: "谢谢参与", color: Colors.indigo, icon: Icons.sentiment_neutral, probability: 30),
           ],
+          currentCounter: widget.currentCounter,
+          onCounterUpdated: widget.onCounterUpdated,
         ),
       ],
     );
