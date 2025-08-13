@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+
 class TaskPage extends StatefulWidget{
   const TaskPage({super.key});
 
@@ -11,6 +12,8 @@ class TaskPage extends StatefulWidget{
 class _MyTaskPageState extends State<TaskPage> {
   int _counter = 0;
   int _flag = 1;
+  DateTime specifiedDate = DateTime(2025, 8, 6);
+
 
   void updateCounter(int value) {
     setState(() {

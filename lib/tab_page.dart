@@ -29,7 +29,7 @@ class _MyTabbedPageState extends State<MyTabbedPage> {
       length: _tabs.length,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('小陈陈的激励计划'),
+          title: const Text('cyx的激励计划'),
           backgroundColor: Colors.teal,
           // 添加TabBar
           bottom: TabBar(
