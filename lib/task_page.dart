@@ -64,6 +64,21 @@ class _MyTaskPageState extends State<TaskPage> {
     }
   }
 
+  // 午夜刷新逻辑（倒计时归零后触发）
+  Future<void> _onMidnightRefresh() async {
+    // 重置每日可完成次数
+    setState(() {
+      _flag = 1;
+    });
+    await _saveFlag(1);
+
+    // 更新基准日期为当天
+    final DateTime today = DateTime.now();
+    final DateTime dateOnly = DateTime(today.year, today.month, today.day);
+    _specifiedDate = dateOnly;
+    await _saveSpecifiedDate(dateOnly);
+  }
+
   // 保存_counter到本地
   Future<void> _saveCounter(int value) async {
     await _prefs.setInt('counter', value);
@@ -118,6 +133,7 @@ class _MyTaskPageState extends State<TaskPage> {
         currentFlag: _flag,
         flagUpdated: updateFlag,
         specifiedDateUpdate: updateSpecifiedDate,
+        onMidnight: _onMidnightRefresh, // 传递午夜刷新回调
       ),
     );
   }
@@ -129,6 +145,7 @@ class ScrollableListWithDialog extends StatelessWidget {
   final int currentFlag;
   final Function(int) flagUpdated;
   final Function(DateTime) specifiedDateUpdate;
+  final VoidCallback onMidnight; // 接收午夜刷新回调
 
   const ScrollableListWithDialog({
     super.key,
@@ -137,6 +154,7 @@ class ScrollableListWithDialog extends StatelessWidget {
     required this.currentFlag,
     required this.flagUpdated,
     required this.specifiedDateUpdate,
+    required this.onMidnight, // 新增：午夜刷新回调
   });
 
   // 任务列表数据
@@ -184,12 +202,14 @@ class ScrollableListWithDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 移除嵌套Scaffold，直接返回列表内容
     return Column(
       children: [
         // 顶部倒计时标题
         AppBar(
-          title: MidnightCountdownWidget(flag: currentFlag),
+          title: MidnightCountdownWidget(
+            flag: currentFlag,
+            onMidnight: onMidnight, // 传递回调给倒计时组件
+          ),
           elevation: 0, // 去除阴影，避免和父级AppBar冲突
           automaticallyImplyLeading: false, // 隐藏返回按钮
         ),
@@ -228,8 +248,13 @@ class ScrollableListWithDialog extends StatelessWidget {
 
 class MidnightCountdownWidget extends StatefulWidget {
   final int flag;
+  final VoidCallback onMidnight; // 新增：午夜回调（倒计时归零触发）
 
-  const MidnightCountdownWidget({super.key, required this.flag});
+  const MidnightCountdownWidget({
+    super.key,
+    required this.flag,
+    required this.onMidnight, // 接收午夜回调
+  });
 
   @override
   State<MidnightCountdownWidget> createState() => _MidnightCountdownWidgetState();
@@ -238,6 +263,7 @@ class MidnightCountdownWidget extends StatefulWidget {
 class _MidnightCountdownWidgetState extends State<MidnightCountdownWidget> {
   Duration _remainingTime = Duration.zero;
   late Timer _timer;
+  bool _hasTriggered = false; // 避免重复触发刷新的标志位
 
   @override
   void initState() {
@@ -249,14 +275,24 @@ class _MidnightCountdownWidgetState extends State<MidnightCountdownWidget> {
     });
   }
 
-  // 计算距离次日0点的剩余时间
+  // 计算距离次日0点的剩余时间，并检测是否触发午夜刷新
   void _calculateRemainingTime() {
     final DateTime now = DateTime.now();
     final DateTime tomorrow = DateTime(now.year, now.month, now.day + 1);
     final Duration remaining = tomorrow.difference(now);
 
+    // 倒计时归零（到午夜）且未触发过刷新时，执行回调
+    if (remaining.inSeconds <= 0 && !_hasTriggered) {
+      _hasTriggered = true; // 标记为已触发
+      widget.onMidnight(); // 调用父组件的刷新逻辑
+    } else if (remaining.inSeconds > 0) {
+      // 未到午夜时重置标志位（避免跨天后无法再次触发）
+      _hasTriggered = false;
+    }
+
     setState(() {
-      _remainingTime = remaining;
+      // 确保时间为负时显示00:00:00
+      _remainingTime = remaining.inSeconds <= 0 ? Duration.zero : remaining;
     });
   }
 
